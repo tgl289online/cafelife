@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ค้นหา Google</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Kanit', sans-serif;
+            background: linear-gradient(to bottom right, #e6f0ff, #dbeafe);
+            text-align: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        input, select, button {
+            font-family: 'Kanit', sans-serif;
+        }
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .share-button {
+            background: linear-gradient(to right, #10B981, #34D399);
+            transition: all 0.3s ease;
+        }
+        .share-button:hover {
+            background: linear-gradient(to right, #059669, #22D3EE);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        #profilePicture {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid #e6f0ff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            object-fit: cover;
+            margin: 0 auto 10px;
+        }
+        .map-iframe {
+            width: 100%;
+            height: 300px;
+            border: 0;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .news-list {
+            text-align: left;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .news-list li {
+            margin-bottom: 15px;
+        }
+        .news-list a {
+            color: #1a0dab;
+            font-weight: 500;
+            text-decoration: none;
+        }
+        .news-list a:hover {
+            text-decoration: underline;
+        }
+        .news-list p {
+            color: #4a4a4a;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+        /* SweetAlert2 Customizations */
+        .swal2-popup {
+            font-family: 'Kanit', sans-serif;
+            background: linear-gradient(to bottom, #ffffff, #e6f0ff);
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            padding: 20px;
+            border: 1px solid #dbeafe;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .swal2-title {
+            color: #1a0dab;
+            font-weight: 700;
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+        .swal2-content {
+            color: #4a4a4a;
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+        .swal2-confirm, .swal2-cancel {
+            font-family: 'Kanit', sans-serif;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .swal2-confirm {
+            background: linear-gradient(to right, #4285F4, #34D399);
+            color: white;
+        }
+        .swal2-confirm:hover {
+            background: linear-gradient(to right, #3267D6, #22D3EE);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .swal2-cancel {
+            background: linear-gradient(to right, #f87171, #ef4444);
+            color: white;
+        }
+        .swal2-cancel:hover {
+            background: linear-gradient(to right, #dc2626, #f87171);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .swal2-icon.swal2-error {
+            border-color: #ef4444;
+            color: #ef4444;
+        }
+        .swal2-icon.swal2-warning {
+            border-color: #f59e0b;
+            color: #f59e0b;
+        }
+        .swal2-icon.swal2-success {
+            border-color: #10B981;
+            color: #10B981;
+        }
+        /* Animation for SweetAlert2 popup */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+    <div id="preloader" class="fixed inset-0 bg-white flex flex-col items-center justify-center z-[1000]">
+        <div class="w-12 h-12 border-4 border-blue-300 border-t-blue-600 rounded-full animate-spin mb-5"></div>
+        <p class="text-lg text-blue-600">กำลังโหลด...</p>
+    </div>
+
+    <div id="main" class="hidden max-w-md mx-auto">
+        <img id="profilePicture" src="https://via.placeholder.com/40" alt="Profile Picture">
+        <h1 class="text-2xl text-blue-600 font-bold mb-4">ค้นหาด้วย Google</h1>
+        <input type="text" id="searchQuery" placeholder="ป้อนคำค้นหา เช่น สูตรอาหาร หรือ สถานีรถไฟหัวลำโพง" class="w-full p-3 mb-3 rounded-lg border-2 border-blue-300 focus:outline-none focus:border-blue-600">
+        <select id="searchType" class="w-full p-3 mb-3 rounded-lg border-2 border-blue-300 focus:outline-none focus:border-blue-600">
+            <option value="web">Web</option>
+            <option value="images">Images</option>
+            <option value="news">News</option>
+            <option value="map">Map</option>
+        </select>
+        <button id="searchButton" onclick="searchGoogle()" class="w-full p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">ค้นหา</button>
+        <div id="result" class="mt-5 bg-white p-5 rounded-lg shadow-lg"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // ตรวจสอบว่าเป็นอุปกรณ์มือถือหรือไม่
+        function isMobileDevice() {
+            return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+        }
+
+        // โหลด LIFF SDK
+        function loadLiffScript(callback) {
+            const script = document.createElement('script');
+            script.src = 'https://static.line-scdn.net/liff/edge/2/sdk.js';
+            script.async = true;
+            script.onload = callback;
+            script.onerror = () => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'โหลด LIFF ล้มเหลว',
+                    text: 'กรุณาตรวจสอบการเชื่อมต่อ',
+                });
+            };
+            document.head.appendChild(script);
+        }
+
+        // เริ่มต้น LIFF และตั้งค่ารูปโปรไฟล์
+        async function initializeLiff() {
+            if (typeof liff === 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'LIFF SDK ไม่โหลด',
+                    text: 'ไม่สามารถโหลด LIFF ได้',
+                });
+                return false;
+            }
+            try {
+                await liff.init({ liffId: 'xxxxxxxxxxxxxxxx' });
+                await liff.ready;
+
+                let profilePicture = 'https://via.placeholder.com/40';
+                if (liff.isLoggedIn()) {
+                    try {
+                        const profile = await liff.getProfile();
+                        if (profile.pictureUrl) {
+                            profilePicture = profile.pictureUrl;
+                        }
+                    } catch (error) {
+                        console.error('Failed to get profile:', error);
+                    }
+                }
+
+                document.getElementById('profilePicture').src = profilePicture;
+
+                document.getElementById('preloader').style.display = 'none';
+                document.getElementById('main').style.display = 'block';
+                return true;
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'LIFF ล้มเหลว',
+                    text: error.message,
+                });
+                return false;
+            }
+        }
+
+        // ดึงภาพตัวอย่างสำหรับการค้นหาภาพ
+        async function fetchImagePreview(query) {
+            const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}&tbm=isch`;
+            const proxy = 'https://api.allorigins.win/raw?url=';
+            try {
+                const response = await fetch(proxy + encodeURIComponent(searchUrl), {
+                    method: 'GET',
+                    cache: 'no-store',
+                });
+                if (!response.ok) throw new Error('ไม่สามารถดึงหน้า Google Images');
+                const html = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const img = doc.querySelector('img[src*="gstatic.com"], img[src*="googleusercontent.com"]');
+                return img ? img.src : null;
+            } catch (error) {
+                console.error('Fetch image error:', error);
+                return null;
+            }
+        }
+
+        // ดึงพิกัดสำหรับการค้นหาแผนที่
+        async function fetchMapLocation(query) {
+            const searchUrl = `https://www.google.com/maps/search/${encodeURIComponent(query)}`;
+            const proxy = 'https://api.allorigins.win/raw?url=';
+            try {
+                const response = await fetch(proxy + encodeURIComponent(searchUrl), {
+                    method: 'GET',
+                    cache: 'no-store',
+                });
+                if (!response.ok) throw new Error('ไม่สามารถดึงหน้า Google Maps');
+                const html = await response.text();
+                const latLngMatch = html.match(/center=([\d\.-]+)%2C([\d\.-]+)/) || 
+                                  html.match(/ll=([\d\.-]+),([\d\.-]+)/) || 
+                                  html.match(/@([\d\.-]+),([\d\.-]+)/);
+                if (latLngMatch) {
+                    return {
+                        latitude: parseFloat(latLngMatch[1]),
+                        longitude: parseFloat(latLngMatch[2]),
+                        address: query,
+                    };
+                }
+                throw new Error('ไม่พบพิกัด');
+            } catch (error) {
+                console.error('Fetch map error:', error);
+                return null;
+            }
+        }
+
+        // ดึงผลการค้นหาข่าว
+        async function fetchNewsResults(query) {
+            const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}&tbm=nws`;
+            const proxy = 'https://api.allorigins.win/raw?url=';
+            try {
+                const response = await fetch(proxy + encodeURIComponent(searchUrl), {
+                    method: 'GET',
+                    cache: 'no-store',
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                    }
+                });
+                if (!response.ok) throw new Error('ไม่สามารถดึงหน้า Google News');
+                const html = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                const newsItems = doc.querySelectorAll('div[role="main"] a[href*="/url?q="], div[role="main"] div[role="heading"], div[role="main"] div:not([role])');
+                const results = [];
+                let currentItem = null;
+
+                for (const item of newsItems) {
+                    if (item.tagName === 'A' && item.href.includes('/url?q=')) {
+                        const url = item.href.match(/\/url\?q=([^&]+)/)?.[1];
+                        const title = item.querySelector('div[role="heading"]')?.textContent.trim();
+                        if (url && title) {
+                            currentItem = { title, link: decodeURIComponent(url) };
+                        }
+                    } else if (currentItem && item.textContent.trim() && !item.querySelector('a')) {
+                        currentItem.description = item.textContent.trim().substring(0, 100);
+                        results.push(currentItem);
+                        currentItem = null;
+                    }
+                }
+
+                if (results.length === 0) {
+                    const regex = /<a href="\/url\?q=([^"]+)".*?role="heading".*?>(.+?)<\/div>.*?<div>(.+?)<\/div>/gs;
+                    let match;
+                    while ((match = regex.exec(html)) !== null && results.length < 5) {
+                        const link = decodeURIComponent(match[1]);
+                        const title = match[2].replace(/<[^>]+>/g, '').trim();
+                        const description = match[3].replace(/<[^>]+>/g, '').trim().substring(0, 100);
+                        if (title && link && description) {
+                            results.push({ title, link, description });
+                        }
+                    }
+                }
+
+                return results.slice(0, 5);
+            } catch (error) {
+                console.error('Fetch news error:', error);
+                return [];
+            }
+        }
+
+        // สร้าง URL สำหรับการค้นหา Google
+        function createGoogleSearchUrl(query, type) {
+            const baseUrl = 'https://www.google.com/search';
+            const encodedQuery = encodeURIComponent(query);
+            if (type === 'images') {
+                return `${baseUrl}?q=${encodedQuery}&tbm=isch`;
+            } else if (type === 'news') {
+                return `${baseUrl}?q=${encodedQuery}&tbm=nws`;
+            } else if (type === 'map') {
+                return `https://www.google.com/maps/search/${encodedQuery}`;
+            }
+            return `${baseUrl}?q=${encodedQuery}`;
+        }
+
+        // สร้าง Flex Message สำหรับการแชร์ผลการค้นหา
+        function createFlexMessage(query, type, searchUrl, liffId, imageUrl = null, newsTitle = null) {
+            // กำหนดป้ายกำกับประเภทการค้นหา
+            const typeLabel = type === 'images' ? 'รูปภาพ' : type === 'news' ? 'ข่าว' : type === 'map' ? 'แผนที่' : 'เว็บ';
+            
+            // เนื้อหาหลักของ Flex Message
+            const contents = [
+                // แสดงคำค้นหา
+                {
+                    type: "text",
+                    text: `คำค้น: ${query}`,
+                    size: "lg",
+                    weight: "bold",
+                    color: "#1a0dab",
+                    wrap: true,
+                    margin: "md"
+                },
+                // แสดงประเภทการค้นหา
+                {
+                    type: "text",
+                    text: `ประเภท: ${typeLabel}`,
+                    size: "sm",
+                    color: "#4a4a4a",
+                    margin: "sm",
+                    wrap: true
+                }
+            ];
+
+            // เพิ่มตัวอย่างข่าวถ้ามี
+            if (type === 'news' && newsTitle) {
+                contents.push({
+                    type: "text",
+                    text: `ตัวอย่าง: ${newsTitle}`,
+                    size: "sm",
+                    color: "#4a4a4a",
+                    margin: "sm",
+                    wrap: true,
+                    maxLines: 2
+                });
+            }
+
+            // เพิ่มเส้นแบ่งเพื่อความสวยงาม
+            contents.push({
+                type: "separator",
+                margin: "lg"
+            });
+
+            // ปุ่มสำหรับดูผลการค้นหา
+            contents.push({
+                type: "button",
+                style: "primary",
+                color: "#4285F4",
+                height: "sm",
+                action: {
+                    type: "uri",
+                    label: "ดูผลการค้นหา",
+                    uri: searchUrl
+                },
+                margin: "md",
+                adjustMode: "shrink-to-fit",
+                gravity: "center"
+            });
+
+            // ปุ่มสำหรับแชร์ผลการค้นหา
+            contents.push({
+                type: "button",
+                style: "primary",
+                color: "#10B981",
+                height: "sm",
+                action: {
+                    type: "uri",
+                    label: "แชร์ผลการค้นหา",
+                    uri: `https://liff.line.me/${liffId}?query=${encodeURIComponent(query)}&type=${encodeURIComponent(type)}${imageUrl ? `&imageUrl=${encodeURIComponent(imageUrl)}` : ''}`
+                },
+                margin: "sm",
+                adjustMode: "shrink-to-fit",
+                gravity: "center"
+            });
+
+            // โครงสร้างหลักของ Flex Message
+            const flexMessage = {
+                type: "bubble",
+                size: "mega",
+                header: {
+                    type: "box",
+                    layout: "vertical",
+                    contents: [
+                        {
+                            type: "text",
+                            text: "ค้นหา Google",
+                            color: "#FFFFFF",
+                            weight: "bold",
+                            size: "md",
+                            align: "center"
+                        }
+                    ],
+                    backgroundColor: "#4285F4",
+                    paddingAll: "lg",
+                    paddingTop: "md",
+                    paddingBottom: "md",
+                    cornerRadius: "10px"
+                },
+                body: {
+                    type: "box",
+                    layout: "vertical",
+                    contents: contents,
+                    paddingAll: "lg",
+                    backgroundColor: "#FFFFFF",
+                    cornerRadius: "10px",
+                    borderWidth: "1px",
+                    borderColor: "#dbeafe"
+                },
+                footer: {
+                    type: "box",
+                    layout: "vertical",
+                    contents: [
+                        {
+                            type: "text",
+                            text: "Powered by Google Search",
+                            size: "xs",
+                            color: "#666666",
+                            align: "center",
+                            margin: "sm"
+                        }
+                    ],
+                    backgroundColor: "#e6f0ff",
+                    paddingAll: "sm"
+                },
+                styles: {
+                    header: {
+                        separator: false
+                    },
+                    body: {
+                        separator: false
+                    }
+                }
+            };
+
+            // เพิ่มภาพตัวอย่างถ้ามี (สำหรับการค้นหาภาพ)
+            if (type === 'images' && imageUrl) {
+                flexMessage.hero = {
+                    type: "image",
+                    url: imageUrl,
+                    size: "full",
+                    aspectRatio: "16:9",
+                    aspectMode: "cover",
+                    margin: "none",
+                    backgroundColor: "#e6f0ff",
+                    action: {
+                        type: "uri",
+                        uri: searchUrl
+                    }
+                };
+            }
+
+            return flexMessage;
+        }
+
+        // สร้าง Location Message สำหรับการแชร์ตำแหน่ง
+        function createLocationMessage(query, latitude, longitude, liffId) {
+            return {
+                type: "location",
+                title: query,
+                address: query,
+                latitude: latitude,
+                longitude: longitude,
+                quickReply: {
+                    items: [
+                        {
+                            type: "action",
+                            action: {
+                                type: "uri",
+                                label: "แชร์ต่อ",
+                                uri: `https://liff.line.me/${liffId}?query=${encodeURIComponent(query)}&type=map&lat=${latitude}&lng=${longitude}`,
+                                color: "#10B981"
+                            }
+                        }
+                    ]
+                }
+            };
+        }
+
+        // ค้นหาด้วย Google และแสดงผล
+        async function searchGoogle() {
+            const query = document.getElementById('searchQuery').value.trim();
+            const type = document.getElementById('searchType').value;
+            const searchButton = document.getElementById('searchButton');
+            const resultDiv = document.getElementById('result');
+
+            if (!query) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'กรุณาป้อนคำค้น',
+                    text: 'ป้อนคำที่ต้องการค้นหา'
+                });
+                return;
+            }
+
+            searchButton.disabled = true;
+            searchButton.innerHTML = '<span class="inline-block w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></span>กำลังค้นหา...';
+            resultDiv.innerHTML = '';
+
+            try {
+                const searchUrl = createGoogleSearchUrl(query, type);
+                const typeLabel = type === 'images' ? 'รูปภาพ' : type === 'news' ? 'ข่าว' : type === 'map' ? 'แผนที่' : 'เว็บ';
+                let imageUrl = null;
+                let location = null;
+                let newsResults = [];
+
+                if (type === 'images') {
+                    imageUrl = await fetchImagePreview(query);
+                } else if (type === 'map') {
+                    location = await fetchMapLocation(query);
+                } else if (type === 'news') {
+                    newsResults = await fetchNewsResults(query);
+                }
+
+                let mapHtml = '';
+                if (type === 'map') {
+                    const coordinates = location ? `${location.latitude},${location.longitude}` : encodeURIComponent(query);
+                    mapHtml = `<iframe width="100%" height="300" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="https://maps.google.com/maps?q=${coordinates}&t=&z=15&ie=UTF8&iwloc=&output=embed" class="map-iframe"></iframe>`;
+                }
+
+                let newsHtml = '';
+                if (type === 'news') {
+                    if (newsResults.length > 0) {
+                        newsHtml = '<ul class="news-list">';
+                        newsResults.forEach(item => {
+                            newsHtml += `
+                                <li>
+                                    <a href="${item.link}" target="_blank">${item.title}</a>
+                                    <p>${item.description}</p>
+                                </li>
+                            `;
+                        });
+                        newsHtml += '</ul>';
+                    }
+                }
+
+                resultDiv.innerHTML = `
+                    <p class="my-2"><strong>คำค้น:</strong> ${query}</p>
+                    <p class="my-2"><strong>ประเภท:</strong> ${typeLabel}</p>
+                    ${type === 'images' && imageUrl ? `<img src="${imageUrl}" alt="ตัวอย่าง" class="max-w-[150px] mx-auto my-2 rounded-lg">` : ''}
+                    ${type === 'images' && !imageUrl ? `<p class="text-gray-600 my-2">ไม่พบภาพตัวอย่าง</p>` : ''}
+                    ${type === 'map' ? `<div id="mapContainer">${mapHtml}</div>` : ''}
+                    ${type === 'news' ? newsHtml : ''}
+                    <button onclick="openSearch('${searchUrl}')" class="w-full p-3 my-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-md hover:shadow-lg transition">ดูผลการค้นหา</button>
+                    <button onclick="shareSearch('${encodeURIComponent(query)}', '${type}', '${encodeURIComponent(searchUrl)}', '${imageUrl ? encodeURIComponent(imageUrl) : ''}', ${location ? `'${location.latitude}', '${location.longitude}'` : 'null, null'}, ${type === 'news' && newsResults.length > 0 ? `'${encodeURIComponent(newsResults[0].title)}'` : 'null'})" class="w-full p-3 my-2 share-button text-white rounded-lg shadow-md">แชร์ผลการค้นหา</button>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="text-red-600">เกิดข้อผิดพลาด: ${error.message}</p>`;
+            } finally {
+                searchButton.disabled = false;
+                searchButton.innerHTML = 'ค้นหา';
+            }
+        }
+
+        // เปิด URL การค้นหาในแท็บใหม่
+        function openSearch(url) {
+            window.open(url, '_blank');
+        }
+
+        // จัดการการแชร์ผลการค้นหา
+        async function shareSearch(query, type, searchUrl, imageUrl, latitude, longitude, newsTitle) {
+            try {
+                // ตรวจสอบว่า LIFF SDK โหลดสำเร็จหรือไม่
+                if (typeof liff === 'undefined') {
+                    throw new Error('LIFF SDK ไม่โหลด');
+                }
+
+                // รอให้ LIFF พร้อมใช้งาน
+                await liff.ready;
+
+                // ตรวจสอบว่าแอปกำลังรันใน LINE client หรือไม่
+                if (!liff.isInClient()) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'ต้องใช้ใน LINE',
+                        text: 'กรุณาเปิดใน LINE เพื่อแชร์',
+                        confirmButtonText: 'เปิดใน LINE',
+                        showCancelButton: true,
+                        cancelButtonText: 'ยกเลิก'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            window.location.href = 'line://app/2005584750-YVmkEjWd';
+                        }
+                    });
+                    return;
+                }
+
+                // ตรวจสอบว่าผู้ใช้ล็อกอิน LINE หรือไม่
+                if (!liff.isLoggedIn()) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'กรุณาล็อกอิน',
+                        text: 'ต้องล็อกอิน LINE เพื่อแชร์',
+                        confirmButtonText: 'ล็อกอิน',
+                        showCancelButton: true
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            liff.login({ redirectUri: window.location.href });
+                        }
+                    });
+                    return;
+                }
+
+                // กำหนด LIFF ID
+                const liffId = '2005584750-YVmkEjWd';
+                let message;
+
+                // สร้างข้อความสำหรับการแชร์ตำแหน่งถ้าเป็นประเภทแผนที่
+                if (type === 'map' && latitude && longitude) {
+                    message = createLocationMessage(
+                        decodeURIComponent(query),
+                        parseFloat(latitude),
+                        parseFloat(longitude),
+                        liffId
+                    );
+                } else {
+                    // สร้าง Flex Message สำหรับประเภทอื่นๆ
+                    message = createFlexMessage(
+                        decodeURIComponent(query),
+                        type,
+                        decodeURIComponent(searchUrl),
+                        liffId,
+                        imageUrl ? decodeURIComponent(imageUrl) : null,
+                        newsTitle ? decodeURIComponent(newsTitle) : null
+                    );
+                }
+
+                // เรียกใช้ shareTargetPicker เพื่อแชร์ข้อความ
+                const result = await liff.shareTargetPicker([{
+                    type: type === 'map' && latitude && longitude ? 'location' : 'flex',
+                    altText: `ค้นหา Google: ${decodeURIComponent(query)}`,
+                    contents: message
+                }]);
+
+                // ถ้าการแชร์สำเร็จ แสดงข้อความแจ้งเตือน
+                if (result) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'แชร์สำเร็จ',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                   liff.closeWindow();
+                } else {
+                    // ถ้าผู้ใช้ยกเลิกการแชร์ ปิด LIFF app
+                    liff.closeWindow();
+                }
+            } catch (error) {
+                // แสดงข้อผิดพลาดถ้ามีปัญหาในการแชร์
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: error.message
+                });
+            }
+        }
+
+        // จัดการการเรียก LIFF ผ่าน URL parameters
+        async function handleLiffCallback() {
+            // ดึงพารามิเตอร์จาก URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const query = urlParams.get('query');
+            const type = urlParams.get('type') || 'web';
+            const imageUrl = urlParams.get('imageUrl');
+            const latitude = urlParams.get('lat');
+            const longitude = urlParams.get('lng');
+
+            // ถ้ามีคำค้นหา เรียกใช้ฟังก์ชันแชร์
+            if (query) {
+                const searchUrl = createGoogleSearchUrl(decodeURIComponent(query), type);
+                await shareSearch(
+                    query,
+                    type,
+                    encodeURIComponent(searchUrl),
+                    imageUrl || '',
+                    latitude || null,
+                    longitude || null,
+                    null
+                );
+            }
+        }
+
+        // เริ่มต้นเมื่อหน้าเว็บโหลด
+        window.onload = function() {
+            // ตรวจสอบว่าเป็นอุปกรณ์มือถือหรือไม่
+            if (!isMobileDevice()) {
+                document.getElementById('preloader').style.display = 'none';
+                Swal.fire({
+                    icon: 'error',
+                    title: 'ไม่สามารถเปิดบนPCได้'
+                });
+                return;
+            }
+
+            // โหลด LIFF SDK และเริ่มต้น LIFF
+            loadLiffScript(async () => {
+                const initialized = await initializeLiff();
+                if (initialized) {
+                    await handleLiffCallback();
+                }
+            });
+        };
+    </script>
+</body>
+</html>
